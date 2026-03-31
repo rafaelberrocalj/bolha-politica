@@ -1,0 +1,62 @@
+name: Release Extension
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Read manifest version
+        id: manifest
+        run: |
+          echo "version=$(node -p "require('./manifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          TIMESTAMP="$(date -u +'%Y%m%d-%H%M%S')"
+          TAG="main-${TIMESTAMP}-${SHORT_SHA}"
+          ZIP_NAME="minha-bolha-politica-v${{ steps.manifest.outputs.version }}-${SHORT_SHA}.zip"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Create zip package
+        run: |
+          cd dist
+          zip -r "../${{ steps.meta.outputs.zip_name }}" .
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Minha Bolha Politica ${{ steps.manifest.outputs.version }} (${{ github.sha }})
+          body: |
+            Build automatico gerado a partir de um push na branch `main`.
+
+            Commit: `${{ github.sha }}`
+            Versao do manifest: `${{ steps.manifest.outputs.version }}`
+          files: ${{ steps.meta.outputs.zip_name }}

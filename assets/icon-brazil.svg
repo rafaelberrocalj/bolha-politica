@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Minha Bolha Política icon</title>
+  <desc id="desc">Silhueta do Brasil com contorno preto grosso, fundo transparente, metade vermelha e metade amarela.</desc>
+  <defs>
+    <path
+      id="brazil-shape"
+      d="M78 127l47-9 18-43 35 3 28 31 36-16-9-42 43-9 28 12 9 49 54 9 19-15 45 9 15-18 35 90 63 35-24 41 3 71-28 31 27 34-37 40-11 65-41 59-70 6-35 32-9 48-57 58-50-50 34-31 6-34-19-24-37 0-9-34-18-19-34 0-3-40-16-53-65-22-47-25-4-32-22-15-31 9-31-3-22-31 7-28z"
+    />
+    <clipPath id="clip-brazil">
+      <use href="#brazil-shape"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <g clip-path="url(#clip-brazil)">
+      <rect x="0" y="0" width="512" height="512" fill="#e1141b"/>
+      <path d="M342 116L214 315L276 511L512 511L512 116Z" fill="#ffd60a"/>
+    </g>
+
+    <use
+      href="#brazil-shape"
+      fill="none"
+      stroke="#000000"
+      stroke-width="16"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+
+    <path
+      d="M343 118L215 315"
+      fill="none"
+      stroke="#000000"
+      stroke-width="16"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>

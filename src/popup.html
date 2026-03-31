@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minha Bolha Política</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Minha Bolha Política 🫧</h1>
+        <p class="subtitle" id="app-subtitle">
+          Descubra quão fundo você está no seu cercadinho.
+        </p>
+      </header>
+
+      <main id="app-state">
+        <!-- Estado Inicial -->
+        <section id="view-initial" class="view active">
+          <div class="hero-icon">🗳️</div>
+          <button id="btn-start" class="btn primary">Iniciar Análise</button>
+        </section>
+
+        <!-- Analisando -->
+        <section id="view-loading" class="view">
+          <div class="loader"></div>
+          <p
+            id="loading-text"
+            style="font-weight: 500; text-align: center; height: 3em"
+          >
+            Infiltrando nos perfis...
+          </p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </section>
+
+        <!-- Resultados -->
+        <section id="view-results" class="view">
+          <div class="result-header">
+            <h2 id="result-headline">Sua bolha é...</h2>
+            <p id="result-irony" class="irony-text"></p>
+          </div>
+
+          <div class="stats-container">
+            <div class="stat-item left">
+              <span class="label">Esquerda</span>
+              <div class="bar-bg">
+                <div id="bar-left-wing" class="bar-fill"></div>
+              </div>
+              <span id="count-left-wing" class="count">0</span>
+            </div>
+
+            <div class="stat-item right">
+              <span class="label">Direita</span>
+              <div class="bar-bg">
+                <div id="bar-right-wing" class="bar-fill"></div>
+              </div>
+              <span id="count-right-wing" class="count">0</span>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button id="btn-reset" class="btn secondary small">
+              Analisar Novamente
+            </button>
+            <button id="btn-share" class="btn tertiary small">
+              Gerar Storie
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p class="note" style="font-size: 8px; font-weight: 500; opacity: 0.85">
+          ⚠️ <strong>Privacidade Total:</strong> Nenhum dado é salvo, enviado a
+          servidores ou explorado. A análise roda 100% no seu navegador local
+          usando a sua sessão atual. O que acontece no seu browser, fica no seu
+          browser.
+        </p>
+      </footer>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
