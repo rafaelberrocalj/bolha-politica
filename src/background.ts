@@ -12,26 +12,17 @@ chrome.action.onClicked.addListener(async (tab) => {
       "[Background] Extension icon clicked. Checking current tab URL...",
       tab.url,
     );
-    if (!tab.url?.includes("instagram.com")) {
+    const isInstagramTab = tab.url?.includes("instagram.com");
+
+    if (!isInstagramTab) {
       console.log(
         "[Background] Tab is not Instagram. Redirecting or opening new tab...",
       );
       const targetUrl = "https://www.instagram.com/";
-      if (
-        tab.url?.startsWith("chrome://") ||
-        tab.url?.startsWith("edge://") ||
-        !tab.url
-      ) {
-        console.log(
-          "[Background] Internal browser page detected. Creating new standard tab...",
-        );
-        await chrome.tabs.create({ url: targetUrl });
-      } else {
-        console.log(
-          "[Background] Standard page detected. Updating current tab URL...",
-        );
-        await chrome.tabs.update(tab.id!, { url: targetUrl });
-      }
+      console.log(
+        "[Background] Opening a fresh Instagram tab to guarantee a supported context...",
+      );
+      await chrome.tabs.create({ url: targetUrl });
 
       console.log(
         "[Background] Waiting 800ms for Instagram to begin loading...",

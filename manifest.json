@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Minha Bolha Política",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Análise da sua bolha política no Instagram (Esquerda vs Direita).",
   "action": {
     "default_icon": {
@@ -21,11 +21,6 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": [
-    "storage",
-    "tabs"
-  ],
-  "host_permissions": [
-    "https://*.instagram.com/*"
-  ]
+  "permissions": ["storage"],
+  "host_permissions": ["https://*.instagram.com/*"]
 }
