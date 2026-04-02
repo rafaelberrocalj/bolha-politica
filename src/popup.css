@@ -60,7 +60,7 @@
 }
 
 body {
-  width: 320px;
+  width: 100%;
   background: var(--bg-color);
   color: var(--text);
   font-family: var(--font);
@@ -69,15 +69,21 @@ body {
 }
 
 .container {
-  padding: 24px;
+  width: min(100%, 500px);
+  margin: 0 auto;
+  padding: 32px;
   display: flex;
   flex-direction: column;
-  min-height: 400px;
+  min-height: 620px;
+}
+
+#app-state {
+  width: 100%;
 }
 
 header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 40px;
 }
 
 h1 {
@@ -128,6 +134,10 @@ h1 {
   background: var(--glass);
   border-radius: 30px;
   backdrop-filter: blur(10px);
+}
+
+.hero-icon.error {
+  color: #b83232;
 }
 
 .btn {
@@ -187,7 +197,7 @@ h1 {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 12px;
+  margin-top: 20px;
 }
 
 /* Loading View */
@@ -222,6 +232,13 @@ h1 {
   transition: width 0.5s ease;
 }
 
+.error-text {
+  text-align: center;
+  color: var(--text);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
 /* Results View */
 .result-header {
   text-align: center;
@@ -237,15 +254,18 @@ h1 {
   margin-bottom: 8px;
   font-weight: 500;
 }
+
 .irony-text {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-irony);
   line-height: 1.4;
+  text-align: center;
 }
 
 .stats-container {
   width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -291,6 +311,49 @@ h1 {
 }
 .right .bar-fill {
   background: var(--secondary-gradient);
+}
+
+.result-summary-card {
+  width: 100%;
+  padding: 16px 18px;
+  background: var(--panel-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--glass);
+}
+
+.result-summary-card.left-dominant {
+  background: var(--primary-gradient);
+  border-color: transparent;
+}
+
+.result-summary-card.right-dominant {
+  background: var(--secondary-gradient);
+  border-color: transparent;
+}
+
+.result-summary-card.balanced {
+  background: var(--panel-bg);
+}
+
+.result-summary {
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.result-summary.left-dominant {
+  color: #ffffff;
+}
+
+.result-summary.right-dominant {
+  color: #1a1a1a;
+}
+
+.result-summary.balanced {
+  color: var(--text);
 }
 
 footer {

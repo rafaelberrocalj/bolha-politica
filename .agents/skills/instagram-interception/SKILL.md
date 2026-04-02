@@ -2,7 +2,7 @@
 
 ## Quando usar esta skill
 
-Use quando precisar capturar dados restritos que o Instagram carrega internamente — especialmente o número de amigos em comum e contadores escondidos — mantendo as extensões de Chrome leves, invisíveis e sem abrir abas adicionais e sem injetar scripts na página.
+Use quando precisar capturar dados restritos que o Instagram carrega internamente — especialmente o número de amigos em comum e contadores escondidos — mantendo a extensão leve e usando fetch direto no service worker. A interface do projeto atual pode ser injetada sobre a própria página do Instagram.
 
 ---
 
@@ -16,11 +16,11 @@ Nela, o campo alvo reside dentro de:
 
 ---
 
-## A Evolução: Background Fetch (Melhor Estratégia)
+## A Evolução: Background Fetch (Estratégia Atual)
 
-No passado, precisávamos injetar content scripts (`monkey patching` do `window.fetch`) e abrir abas escondidas. Isso sujava a sessão do usuário, demorava e era instável.
+No passado, precisávamos injetar content scripts (`monkey patching` do `window.fetch`) e abrir abas escondidas para interceptar respostas. Isso sujava a sessão do usuário, demorava e era instável.
 
-Agora, utilizamos **Fetch Direto via Background Service Worker** do Manifest V3.
+Agora, a coleta usa **fetch direto via Background Service Worker** do Manifest V3. O content script do projeto atual é usado apenas para abrir a interface sobre a página do Instagram, não para interceptar `fetch`.
 
 ### Regras de Ouro para o Fetch no Background (MANDATÓRIO)
 
@@ -53,7 +53,7 @@ async function fetchProfileData(username: string) {
 
 ## Orquestração e Evitação de Bloqueios ("Rate Limits")
 
-- **Delay Obrigatório:** Nunca dispare dezenas de fetchs simultaneamente (`Promise.all()`). O Instagram lhe dará Shadowban ou Rate Limit temporário. Use laços assíncronos `for...of` com `.sleep()` de `1000ms a 1500ms` entre perfis.
+- **Sem paralelismo agressivo:** Nunca dispare dezenas de fetchs simultaneamente (`Promise.all()`). Use laços assíncronos `for...of` para limitar o ritmo de chamadas.
 - **Tratamento de Exceções Lógicas:** Contadores podem vir como `null` ou inexistentes dependendo das regras de privacidade do alvo. SEMPRE valide `payload?.data?.user?.edge_mutual_followed_by` via Optional Chaining antes de definir a contagem.
 
 ---
@@ -61,4 +61,5 @@ async function fetchProfileData(username: string) {
 ## Armadilhas solucionadas nesta arquitetura
 
 - **Receiving end does not exist:** Quando usamos Service Workers enviando mensagens (`chrome.runtime.sendMessage`) para atualizar as barrinhas de progresso no popup, o popup fechado dá crash na Promessa. Crie wrappers defensivos vazios para ignorar o `lastError`.
-- **Abertura Dinâmica Garantida:** Se estritamente necessário garantir estar em uma aba válida para abrir o popup, gerencie o `chrome.action.setPopup({ popup: "" })` na inicialização do evento `DOMContentLoaded` e use `chrome.action.onClicked.addListener` no Background injetando/atualizando tabs na raça!
+- **Overlay no Instagram:** No projeto atual, o clique no ícone deve abrir a interface sobre a própria página do Instagram. Se o usuário não estiver em `instagram.com`, a extensão abre uma nova aba do Instagram, espera a página carregar e então envia uma mensagem ao content script para abrir o overlay.
+- **Estado reiniciado por clique:** No projeto atual, cada clique no ícone deve resetar a análise para o estado inicial antes de exibir a interface.

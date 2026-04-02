@@ -1,12 +1,12 @@
 {
   "name": "bolha-politica",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
     "lint": "npx prettier --write 'src/**/*.{ts,html,css}'",
-    "build": "npm run lint && esbuild src/background.ts src/popup.ts --bundle --outdir=dist --platform=browser && cp manifest.json src/popup.html src/popup.css dist/ && cp -R assets dist/",
-    "watch": "esbuild src/background.ts src/popup.ts --bundle --outdir=dist --platform=browser --watch",
+    "build": "npm run lint && esbuild src/background.ts src/popup.ts src/content.ts --bundle --format=iife --target=safari16,chrome110 --outdir=dist --platform=browser && cp manifest.json src/popup.html src/popup.css src/content.css dist/ && cp -R assets dist/",
+    "watch": "esbuild src/background.ts src/popup.ts src/content.ts --bundle --format=iife --target=safari16,chrome110 --outdir=dist --platform=browser --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

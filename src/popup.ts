@@ -1,6 +1,7 @@
 // Maintains user-facing messaging in Portuguese per requirements
 
 import {
+  PROFILES,
   RANDOM_SUBTITLES,
   RANDOM_LOADING_MESSAGES,
   IRONIC_MESSAGES,
@@ -18,18 +19,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       RANDOM_SUBTITLES[Math.floor(Math.random() * RANDOM_SUBTITLES.length)];
   }
 
-  // Clears the dynamically set popup payload to ensure subsequent clicks trigger background handler properly
-  console.log(
-    "[Popup] Resetting browser action popup configuration object to empty string...",
-  );
-  chrome.action.setPopup({ popup: "" });
-
   // DOM element mapping
   const btnStart = document.getElementById("btn-start");
   const btnReset = document.getElementById("btn-reset");
+  const btnErrorRetry = document.getElementById("btn-error-retry");
   const viewInitial = document.getElementById("view-initial");
   const viewLoading = document.getElementById("view-loading");
-  const viewResults = document.getElementById("view-results");
+  const errorTextEl = document.getElementById("error-text");
   const progressFill = document.getElementById("progress-fill");
   const loadingTextEl = document.getElementById("loading-text");
 
@@ -38,21 +34,26 @@ document.addEventListener("DOMContentLoaded", async () => {
   const progressRightWingBar = document.getElementById("bar-right-wing");
   const counterLeftWingTag = document.getElementById("count-left-wing");
   const counterRightWingTag = document.getElementById("count-right-wing");
+  const resultSummaryCard = document.getElementById("result-summary-card");
+  const resultHeadline = document.getElementById("result-headline");
   const resultIronyParagraph = document.getElementById("result-irony");
   const btnShare = document.getElementById("btn-share");
 
-  console.log("[Popup] Fetching component session persistent state...");
-  const sessionConfig = await chrome.storage.session.get([
-    "results",
-    "totals",
-    "status",
-  ]);
+  console.log("[Popup] Fetching current analysis state from background...");
+  const sessionConfig = await sendRuntimeMessage({
+    type: "GET_ANALYSIS_STATE",
+  });
 
-  if (sessionConfig.status === "COMPLETE") {
+  if (sessionConfig?.status === "COMPLETE") {
     console.log(
       "[Popup] Existing COMPLETED session found. Restoring metrics visually...",
     );
     renderAnalysisResults(sessionConfig.results, sessionConfig.totals);
+  } else if (sessionConfig?.status === "RUNNING") {
+    switchLayoutView("view-loading");
+    syncLoadingProgress(sessionConfig);
+  } else if (sessionConfig?.status === "ERROR") {
+    renderErrorState(sessionConfig.lastError);
   } else {
     console.log(
       "[Popup] No previous completion state found. Showing initial setup view.",
@@ -67,19 +68,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log(
       "[Popup User Action] Emitting START_ANALYSIS background intent...",
     );
-    chrome.runtime.sendMessage({ type: "START_ANALYSIS" });
+    void sendRuntimeMessage({ type: "START_ANALYSIS" });
   });
 
-  btnReset?.addEventListener("click", () => {
+  btnReset?.addEventListener("click", async () => {
     console.log(
       "[Popup User Action] Reset requested. Flushing session variables...",
     );
-    chrome.storage.session.remove(["results", "status"]);
+    await sendRuntimeMessage({ type: "RESET_ANALYSIS" });
+    switchLayoutView("view-initial");
+  });
+
+  btnErrorRetry?.addEventListener("click", async () => {
+    await sendRuntimeMessage({ type: "RESET_ANALYSIS" });
     switchLayoutView("view-initial");
   });
 
   btnShare?.addEventListener("click", () => {
-    console.log("[Popup User Action] Gerar Storie acionado.");
+    console.log("[Popup User Action] Gerar Imagem para Storie acionado.");
     generateShareImage();
   });
 
@@ -88,14 +94,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log(
       `[Popup Component] Receiver grabbed inner application message: ${backgroundMessage.type}`,
     );
+    if (
+      backgroundMessage.type === "ANALYSIS_PROGRESS" ||
+      backgroundMessage.type === "ANALYSIS_STATE_CHANGED"
+    ) {
+      syncLoadingProgress(backgroundMessage.state);
+    }
+
     if (backgroundMessage.type === "ANALYSIS_FINISHED") {
       console.log(
         "[Popup Component] Background analysis stream closed. Triggering UI rendering phase...",
       );
       renderAnalysisResults(
-        backgroundMessage.results,
-        backgroundMessage.totals,
+        backgroundMessage.state.results,
+        backgroundMessage.state.totals,
       );
+    }
+
+    if (backgroundMessage.type === "ANALYSIS_ERROR") {
+      renderErrorState(backgroundMessage.state.lastError);
     }
   });
 
@@ -103,16 +120,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   let loaderTicks = 0;
   const uiPollingInterval = setInterval(async () => {
     if (viewLoading?.classList.contains("active")) {
-      const storageSync = await chrome.storage.session.get("results");
-      const retrievedProfilesCount = Object.keys(
-        storageSync.results || {},
-      ).length;
-      const progressPercentage = (retrievedProfilesCount / 8) * 100; // Considering 8 total target profiles
-
-      console.log(
-        `[Popup Poller] Active scraping progress: ${retrievedProfilesCount}/8 -> ${progressPercentage}%`,
-      );
-      if (progressFill) progressFill.style.width = `${progressPercentage}%`;
+      const state = await sendRuntimeMessage({ type: "GET_ANALYSIS_STATE" });
+      syncLoadingProgress(state);
 
       // Animate random loading subtext every ~2 seconds (4 cycles)
       if (loaderTicks % 4 === 0 && loadingTextEl) {
@@ -125,6 +134,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }, 500);
 
+  window.addEventListener("beforeunload", () => {
+    clearInterval(uiPollingInterval);
+  });
+
   /**
    * Layout manager hiding inactive panels and showing target screen frames
    */
@@ -136,6 +149,48 @@ document.addEventListener("DOMContentLoaded", async () => {
       .querySelectorAll(".view")
       .forEach((htmlSection) => htmlSection.classList.remove("active"));
     document.getElementById(activeViewId)?.classList.add("active");
+  }
+
+  function syncLoadingProgress(state?: {
+    results?: Record<string, number>;
+    totalProfiles?: number;
+  }) {
+    const retrievedProfilesCount = Object.keys(state?.results || {}).length;
+    const totalProfiles = state?.totalProfiles || PROFILES.length;
+    const progressPercentage =
+      totalProfiles === 0 ? 0 : (retrievedProfilesCount / totalProfiles) * 100;
+
+    console.log(
+      `[Popup Poller] Active scraping progress: ${retrievedProfilesCount}/${totalProfiles} -> ${progressPercentage}%`,
+    );
+
+    if (progressFill) progressFill.style.width = `${progressPercentage}%`;
+  }
+
+  function sendRuntimeMessage<T>(message: { type: string }): Promise<T> {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn(
+            "[Popup] Runtime message failed:",
+            chrome.runtime.lastError.message,
+          );
+          resolve({} as T);
+          return;
+        }
+
+        resolve(response as T);
+      });
+    });
+  }
+
+  function renderErrorState(message?: string | null) {
+    if (errorTextEl) {
+      errorTextEl.innerText =
+        message ||
+        "Nao foi possivel concluir a analise. Verifique sua sessao no Instagram e tente novamente.";
+    }
+    switchLayoutView("view-error");
   }
 
   /**
@@ -160,6 +215,46 @@ document.addEventListener("DOMContentLoaded", async () => {
       counterLeftWingTag.innerText = `${leftWingScore} amigos`;
     if (counterRightWingTag)
       counterRightWingTag.innerText = `${rightWingScore} amigos`;
+
+    const dominantScore = Math.max(leftWingScore, rightWingScore);
+    const dominantPercentage =
+      combinedInteractivityTotal === 0
+        ? 0
+        : Math.round((dominantScore / combinedInteractivityTotal) * 100);
+    const dominantSideLabel =
+      leftWingScore === rightWingScore
+        ? "equilibrados"
+        : leftWingScore > rightWingScore
+          ? "ESQUERDA"
+          : "DIREITA";
+
+    if (resultHeadline) {
+      resultSummaryCard?.classList.remove(
+        "left-dominant",
+        "right-dominant",
+        "balanced",
+      );
+      resultHeadline.classList.remove(
+        "left-dominant",
+        "right-dominant",
+        "balanced",
+      );
+      resultHeadline.innerText =
+        dominantSideLabel === "equilibrados"
+          ? "Seus amigos tendem a ser 50% para cada lado"
+          : `Seus amigos tendem a ser ${dominantPercentage}% para ${dominantSideLabel}`;
+
+      if (dominantSideLabel === "ESQUERDA") {
+        resultSummaryCard?.classList.add("left-dominant");
+        resultHeadline.classList.add("left-dominant");
+      } else if (dominantSideLabel === "DIREITA") {
+        resultSummaryCard?.classList.add("right-dominant");
+        resultHeadline.classList.add("right-dominant");
+      } else {
+        resultSummaryCard?.classList.add("balanced");
+        resultHeadline.classList.add("balanced");
+      }
+    }
 
     // Asynchronous visual DOM transition hooks allowing CSS paints gracefully processing bar increments
     setTimeout(() => {
@@ -399,10 +494,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         : leftCount > rightCount
           ? "esquerda"
           : "direita";
-    const dominantText =
-      dominantSide === "equilibrada"
-        ? "Bolha equilibrada"
-        : `Predomina ${dominantSide}`;
     const dominantGradientColors =
       dominantSide === "esquerda"
         ? [leftStart, leftEnd]
@@ -450,46 +541,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       34,
     );
 
-    const badgeGradient = ctx.createLinearGradient(
-      horizontalPadding,
-      228,
-      horizontalPadding + 220,
-      228,
-    );
-    badgeGradient.addColorStop(0, dominantGradientColors[0]);
-    badgeGradient.addColorStop(1, dominantGradientColors[1]);
-    fillRoundedRect(horizontalPadding, 218, 220, 44, 999, badgeGradient);
-    ctx.save();
-    ctx.fillStyle = "#ffffff";
-    ctx.font =
-      "700 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.textBaseline = "middle";
-    ctx.fillText(dominantText.toUpperCase(), horizontalPadding + 22, 240);
-    ctx.restore();
-
-    const headerCardY = 288;
+    const headerCardY = 218;
+    const headerCardHeight = 220;
     fillRoundedRect(
       horizontalPadding,
       headerCardY,
       contentWidth,
-      284,
+      headerCardHeight,
       30,
       colors.panel,
     );
     ctx.save();
-    drawRoundedRect(horizontalPadding, headerCardY, contentWidth, 284, 30);
+    drawRoundedRect(
+      horizontalPadding,
+      headerCardY,
+      contentWidth,
+      headerCardHeight,
+      30,
+    );
     ctx.strokeStyle = colors.glass;
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.restore();
-
-    ctx.save();
-    ctx.fillStyle = colors.text;
-    ctx.font =
-      "700 30px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillText(headline, storyWidth / 2, headerCardY + 38);
     ctx.restore();
 
     const drawBarSection = (
@@ -554,7 +626,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       "Esquerda",
       leftLabel,
       leftBarPercent,
-      640,
+      580,
       leftStart,
       leftEnd,
     );
@@ -562,7 +634,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       "Direita",
       rightLabel,
       rightBarPercent,
-      840,
+      760,
       rightStart,
       rightEnd,
     );
@@ -570,11 +642,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     drawWrappedText(
       ironyText,
       horizontalPadding + 40,
-      headerCardY + 108,
+      headerCardY + 52,
       contentWidth - 80,
       "700 24px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       colors.ironyText,
       38,
+    );
+
+    const summaryCardY = 878;
+    const summaryGradient = ctx.createLinearGradient(
+      horizontalPadding,
+      summaryCardY,
+      horizontalPadding + contentWidth,
+      summaryCardY,
+    );
+    summaryGradient.addColorStop(0, dominantGradientColors[0]);
+    summaryGradient.addColorStop(1, dominantGradientColors[1]);
+    fillRoundedRect(
+      horizontalPadding,
+      summaryCardY,
+      contentWidth,
+      116,
+      28,
+      dominantSide === "equilibrada" ? colors.panel : summaryGradient,
+    );
+    ctx.save();
+    drawRoundedRect(horizontalPadding, summaryCardY, contentWidth, 116, 28);
+    ctx.strokeStyle =
+      dominantSide === "equilibrada"
+        ? colors.glass
+        : "rgba(255, 255, 255, 0.12)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    const summaryColor =
+      dominantSide === "esquerda"
+        ? "#ffffff"
+        : dominantSide === "direita"
+          ? "#1a1a1a"
+          : colors.text;
+    drawWrappedText(
+      headline,
+      horizontalPadding + 28,
+      summaryCardY + 28,
+      contentWidth - 56,
+      "800 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      summaryColor,
+      36,
     );
 
     ctx.save();
@@ -585,7 +700,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     drawWrappedText(
       'Quer saber sua bolha? Procure por "Minha Bolha Política" e faça o seu teste.',
       horizontalPadding + 8,
-      1146,
+      1046,
       contentWidth - 16,
       "600 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       colors.muted,

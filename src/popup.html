@@ -36,10 +36,19 @@
           </div>
         </section>
 
+        <section id="view-error" class="view">
+          <div class="hero-icon error">!</div>
+          <p id="error-text" class="error-text">
+            Nao foi possivel concluir a analise.
+          </p>
+          <button id="btn-error-retry" class="btn primary">
+            Tentar Novamente
+          </button>
+        </section>
+
         <!-- Resultados -->
         <section id="view-results" class="view">
           <div class="result-header">
-            <h2 id="result-headline">Sua bolha é...</h2>
             <p id="result-irony" class="irony-text"></p>
           </div>
 
@@ -61,12 +70,18 @@
             </div>
           </div>
 
+          <div id="result-summary-card" class="result-summary-card">
+            <p id="result-headline" class="result-summary">
+              Seus amigos tendem a ser 50% para cada lado
+            </p>
+          </div>
+
           <div class="actions-row">
             <button id="btn-reset" class="btn secondary small">
               Analisar Novamente
             </button>
             <button id="btn-share" class="btn tertiary small">
-              Gerar Storie
+              Gerar Imagem para Storie
             </button>
           </div>
         </section>
@@ -74,10 +89,9 @@
 
       <footer>
         <p class="note" style="font-size: 8px; font-weight: 500; opacity: 0.85">
-          ⚠️ <strong>Privacidade Total:</strong> Nenhum dado é salvo, enviado a
-          servidores ou explorado. A análise roda 100% no seu navegador local
-          usando a sua sessão atual. O que acontece no seu browser, fica no seu
-          browser.
+          ⚠️ <strong>Privacidade Total:</strong> Nenhum dado e enviado a
+          servidores proprios ou explorado. A analise roda 100% no seu navegador
+          local usando a sua sessao atual no Instagram.
         </p>
       </footer>
     </div>

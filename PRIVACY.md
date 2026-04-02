@@ -6,13 +6,16 @@ A extensão `Minha Bolha Política` foi desenvolvida para analisar, localmente n
 
 Esta extensão não é afiliada ao Instagram.
 
+O uso da extensão pressupõe contexto ativo do `instagram.com`. Se o usuário clicar no ícone fora do Instagram, a extensão pode abrir uma nova aba do Instagram antes de exibir sua interface sobre a própria página.
+
 ## Quais dados são acessados
 
 A extensão acessa apenas:
 
 - a sessão já ativa do usuário no Instagram, para que as requisições autenticadas funcionem
+- a informação de que a aba atual está ou não em `instagram.com`, apenas para controlar a abertura correta da interface
 - a quantidade de amigos em comum entre o usuário e os perfis públicos configurados no projeto
-- resultados temporários da própria análise, armazenados localmente durante a execução
+- resultados temporários da própria análise, mantidos localmente pelo navegador apenas para sustentar o funcionamento da extensão
 - os dados visuais necessários para gerar a imagem de compartilhamento local quando o usuário usa essa função
 
 A extensão não solicita nome, email, senha, mensagens, lista completa de seguidores ou qualquer dado além do necessário para calcular os totais comparativos exibidos na interface.
@@ -22,19 +25,20 @@ A extensão não solicita nome, email, senha, mensagens, lista completa de segui
 Os dados são usados exclusivamente para:
 
 - calcular os totais de afinidade entre os perfis classificados como `esquerda` e `direita`
-- exibir o resultado no popup da extensão
+- exibir o resultado na interface da extensão mostrada sobre a página do Instagram
+- exibir a mensagem percentual final da análise com base na proporção entre `esquerda` e `direita`
 - permitir a geração da imagem de compartilhamento com o resumo do resultado
 - baixar essa imagem localmente no navegador do usuário quando solicitado
 
 ## Armazenamento
 
-Os resultados da análise são armazenados temporariamente em `chrome.storage.session`.
+Os resultados da análise são mantidos localmente pelo navegador apenas para sustentar a execução da extensão e recuperar a interface quando o service worker do MV3 for descarregado.
 
 Isso significa que:
 
-- os dados ficam disponíveis apenas durante a sessão da extensão/navegador
+- os dados ficam disponíveis localmente apenas enquanto forem necessários para a execução e para a recuperação do estado recente da extensão
 - os dados não são persistidos como histórico permanente do usuário pela própria extensão
-- os dados podem ser descartados ao reiniciar a sessão ou ao resetar a análise
+- os dados podem ser descartados ao reiniciar a sessão, ao clicar novamente no ícone da extensão ou ao resetar a análise
 
 ## Compartilhamento de dados
 
@@ -44,6 +48,7 @@ As comunicações de rede feitas pela extensão são requisições para o domín
 
 Na prática, isso significa que:
 
+- a extensão pode abrir `https://www.instagram.com/` quando o usuário aciona o ícone fora desse contexto
 - a extensão se comunica com o Instagram para obter os dados necessários à análise
 - cookies de sessão, cabeçalhos e demais dados normalmente envolvidos nessas requisições continuam sujeitos às políticas e ao funcionamento do próprio Instagram
 - a extensão não replica esses dados para servidores próprios do projeto
@@ -57,6 +62,7 @@ A extensão não vende, aluga, comercializa ou compartilha dados pessoais com te
 O usuário pode:
 
 - interromper o uso da extensão a qualquer momento
+- fechar a interface sobre o Instagram a qualquer momento
 - resetar a análise dentro da interface
 - deixar de gerar a imagem de compartilhamento se não quiser exportar o resultado
 - remover a extensão do navegador quando desejar

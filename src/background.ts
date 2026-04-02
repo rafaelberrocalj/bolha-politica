@@ -1,64 +1,84 @@
 import { PROFILES } from "./config";
 
 const IG_APP_ID = "936619743392459"; // Default web Instagram App ID
+const DB_NAME = "minha-bolha-politica";
+const STORE_NAME = "extension-state";
+const STATE_KEY = "analysis-state";
 
-let analysisResults: Record<string, number> = {};
-let isAnalysisPending = false;
+type AnalysisStatus = "IDLE" | "RUNNING" | "COMPLETE" | "ERROR";
 
-// Popup opening control and redirect logic
+type AnalysisState = {
+  results: Record<string, number>;
+  totals: { left: number; right: number };
+  status: AnalysisStatus;
+  totalProfiles: number;
+  isAnalysisPending: boolean;
+  lastError: string | null;
+  updatedAt: number | null;
+};
+
+const defaultAnalysisState = (): AnalysisState => ({
+  results: {},
+  totals: { left: 0, right: 0 },
+  status: "IDLE",
+  totalProfiles: PROFILES.length,
+  isAnalysisPending: false,
+  lastError: null,
+  updatedAt: null,
+});
+
+let analysisState: AnalysisState = defaultAnalysisState();
+let activeAnalysisRunId = 0;
+
 chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    console.log(
-      "[Background] Extension icon clicked. Checking current tab URL...",
-      tab.url,
-    );
-    const isInstagramTab = tab.url?.includes("instagram.com");
+  console.log("[Background] Toolbar action clicked.");
+  await resetAnalysisState();
 
-    if (!isInstagramTab) {
-      console.log(
-        "[Background] Tab is not Instagram. Redirecting or opening new tab...",
-      );
-      const targetUrl = "https://www.instagram.com/";
-      console.log(
-        "[Background] Opening a fresh Instagram tab to guarantee a supported context...",
-      );
-      await chrome.tabs.create({ url: targetUrl });
-
-      console.log(
-        "[Background] Waiting 800ms for Instagram to begin loading...",
-      );
-      await new Promise((resolve) => setTimeout(resolve, 800));
-    }
-
-    console.log("[Background] Preparing to open popup dynamically...");
-    await chrome.action.setPopup({ popup: "popup.html" });
-    if ((chrome.action as any).openPopup) {
-      await (chrome.action as any).openPopup();
-      console.log("[Background] Popup opened successfully via openPopup API.");
-    } else {
-      console.warn(
-        "[Background] openPopup API is not supported on this browser version.",
-      );
-    }
-  } catch (err) {
-    console.error(
-      "[Background] Unhandled error while handling extension click:",
-      err,
-    );
+  if (isInstagramUrl(tab.url)) {
+    await openExtensionInterface(tab.id);
+    return;
   }
+
+  console.log(
+    "[Background] Current tab is not Instagram. Opening instagram.com first...",
+  );
+  const instagramTab = await chrome.tabs.create({
+    url: "https://www.instagram.com/",
+  });
+
+  await waitForTabCompletion(instagramTab.id);
+  await openExtensionInterface(instagramTab.id);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log(`[Background] Received message type: ${message.type}`);
   if (message.type === "START_ANALYSIS") {
     console.log("[Background] Starting analysis requested by popup.");
-    handleStartAnalysis();
-    return true; // Keep the message channel open for async response
+    void handleStartAnalysis().then(() => {
+      sendResponse(getAnalysisState());
+    });
+    return true;
+  }
+
+  if (message.type === "GET_ANALYSIS_STATE") {
+    void hydrateState().then(() => {
+      sendResponse(getAnalysisState());
+    });
+    return true;
+  }
+
+  if (message.type === "RESET_ANALYSIS") {
+    void resetAnalysisState().then(() => {
+      sendResponse(getAnalysisState());
+    });
+    return true;
   }
 });
 
 async function handleStartAnalysis() {
-  if (isAnalysisPending) {
+  await hydrateState();
+
+  if (analysisState.isAnalysisPending) {
     console.warn(
       "[Background] Analysis is already pending/running. Ignoring redundant request.",
     );
@@ -70,11 +90,29 @@ async function handleStartAnalysis() {
 }
 
 async function startBackgroundAnalysis() {
-  isAnalysisPending = true;
-  analysisResults = {};
+  const runId = ++activeAnalysisRunId;
+  analysisState = {
+    ...defaultAnalysisState(),
+    status: "RUNNING",
+    isAnalysisPending: true,
+    updatedAt: Date.now(),
+  };
+  await persistState();
+  await safeSendMessage({
+    type: "ANALYSIS_STATE_CHANGED",
+    state: getAnalysisState(),
+  });
 
   console.log("[Background] Iterating through configured profiles...");
+  let successfulProfiles = 0;
+  const failedProfiles: string[] = [];
+
   for (const profile of PROFILES) {
+    if (runId !== activeAnalysisRunId) {
+      console.log("[Background] Analysis run was superseded. Aborting early.");
+      return;
+    }
+
     try {
       console.log(
         `[Background] Fetching data for user: ${profile.username}...`,
@@ -99,62 +137,148 @@ async function startBackgroundAnalysis() {
         );
       }
 
-      analysisResults[profile.username] = mutualFriendsCount;
+      analysisState.results[profile.username] = mutualFriendsCount;
+      analysisState.updatedAt = Date.now();
+      successfulProfiles += 1;
+      await persistState();
 
-      console.log(
-        "[Background] Storing partial results into session storage...",
-      );
-      chrome.storage.session.set({ results: analysisResults });
-
-      // Wait a random jittered time (e.g. 1800ms - 3200ms) to emulate organic load
-      const jitterMs = Math.floor(Math.random() * (3200 - 1800 + 1)) + 1800;
-      console.log(
-        `[Background] Anti-bot jitter active. Delaying for ${jitterMs}ms before next scrape (HTTP 429 evasion)...`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, jitterMs));
+      console.log("[Background] Broadcasting partial progress update...");
+      await safeSendMessage({
+        type: "ANALYSIS_PROGRESS",
+        state: getAnalysisState(),
+      });
     } catch (error) {
       console.error(
         `[Background] Failed to process profile ${profile.username}. Error details:`,
         error,
       );
+      failedProfiles.push(profile.username);
     }
   }
 
-  isAnalysisPending = false;
+  analysisState.isAnalysisPending = false;
+
+  if (runId !== activeAnalysisRunId) {
+    console.log(
+      "[Background] Analysis run was superseded before final aggregation.",
+    );
+    return;
+  }
 
   console.log("[Background] Aggregating results by political sides...");
   let totalLeft = 0;
   let totalRight = 0;
 
   for (const profile of PROFILES) {
-    if (typeof analysisResults[profile.username] === "number") {
+    if (typeof analysisState.results[profile.username] === "number") {
       if (profile.side === "left")
-        totalLeft += analysisResults[profile.username];
+        totalLeft += analysisState.results[profile.username];
       if (profile.side === "right")
-        totalRight += analysisResults[profile.username];
+        totalRight += analysisState.results[profile.username];
     }
   }
 
-  const aggregatedTotals = { left: totalLeft, right: totalRight };
+  analysisState.totals = { left: totalLeft, right: totalRight };
+  analysisState.updatedAt = Date.now();
+
+  if (successfulProfiles === 0) {
+    analysisState.status = "ERROR";
+    analysisState.lastError =
+      "Nao foi possivel carregar os perfis do Instagram. Verifique se voce esta logado, se os perfis seguem publicos e tente novamente.";
+  } else if (failedProfiles.length > 0) {
+    analysisState.status = "COMPLETE";
+    analysisState.lastError = `Alguns perfis nao puderam ser analisados: ${failedProfiles.join(", ")}.`;
+  } else {
+    analysisState.status = "COMPLETE";
+    analysisState.lastError = null;
+  }
+
+  await persistState();
   console.log(
     `[Background] Aggregation complete. Left wings: ${totalLeft}, Right wings: ${totalRight}.`,
   );
 
-  console.log("[Background] Finalizing session storage state to 'COMPLETE'...");
-  chrome.storage.session.set({
-    results: analysisResults,
-    totals: aggregatedTotals,
-    lastUpdate: Date.now(),
-    status: "COMPLETE",
-  });
+  if (analysisState.status === "ERROR") {
+    console.log("[Background] Broadcasting ANALYSIS_ERROR to popup UI.");
+    await safeSendMessage({
+      type: "ANALYSIS_ERROR",
+      state: getAnalysisState(),
+    });
+    return;
+  }
 
   console.log("[Background] Broadcasting ANALYSIS_FINISHED to popup UI.");
-  safeSendMessage({
+  await safeSendMessage({
     type: "ANALYSIS_FINISHED",
-    results: analysisResults,
-    totals: aggregatedTotals,
-    totalProfiles: PROFILES.length,
+    state: getAnalysisState(),
   });
+}
+
+function isInstagramUrl(url?: string) {
+  return /^https:\/\/(www\.)?instagram\.com\//.test(url || "");
+}
+
+async function openExtensionInterface(tabId?: number) {
+  if (!tabId) {
+    return;
+  }
+
+  await sendMessageToTab(tabId, { type: "OPEN_EXTENSION_OVERLAY" });
+}
+
+function waitForTabCompletion(tabId?: number) {
+  if (!tabId) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(handleUpdatedTab);
+      resolve();
+    }, 6000);
+
+    const handleUpdatedTab = (
+      updatedTabId: number,
+      changeInfo: chrome.tabs.TabChangeInfo,
+    ) => {
+      if (updatedTabId !== tabId || changeInfo.status !== "complete") {
+        return;
+      }
+
+      clearTimeout(timeoutId);
+      chrome.tabs.onUpdated.removeListener(handleUpdatedTab);
+      resolve();
+    };
+
+    chrome.tabs.onUpdated.addListener(handleUpdatedTab);
+  });
+}
+
+async function sendMessageToTab(
+  tabId: number,
+  message: { type: string },
+  retries = 10,
+) {
+  for (let attempt = 0; attempt < retries; attempt += 1) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      return;
+    } catch (error) {
+      if (attempt === retries - 1) {
+        console.error(
+          "[Background] Failed to reach Instagram overlay script:",
+          error,
+        );
+        return;
+      }
+
+      await delay(300);
+    }
+  }
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchProfileData(username: string) {
@@ -182,29 +306,117 @@ async function fetchProfileData(username: string) {
   return await response.json();
 }
 
+function getAnalysisState() {
+  return analysisState;
+}
+
+async function resetAnalysisState() {
+  activeAnalysisRunId += 1;
+  analysisState = defaultAnalysisState();
+  await persistState();
+}
+
 /**
  * Message transmission helper avoiding 'Could not establish connection. Receiving end does not exist.' exceptions.
  */
 function safeSendMessage(message: any) {
+  return new Promise<void>((resolve) => {
+    try {
+      console.log(
+        `[Background Helper] Attempting to send safe message: ${message.type}`,
+      );
+      chrome.runtime.sendMessage(message, () => {
+        if (chrome.runtime.lastError) {
+          console.info(
+            `[Background Helper] Expected info: Runtime message target closed or not listening (Popup likely closed). Discarding broadcast for type ${message.type}.`,
+          );
+        } else {
+          console.log(
+            `[Background Helper] Message ${message.type} successfully received by active UI components.`,
+          );
+        }
+        resolve();
+      });
+    } catch (e) {
+      console.error(
+        "[Background Helper] Critical error occurred while dispatching message:",
+        e,
+      );
+      resolve();
+    }
+  });
+}
+
+async function hydrateState() {
   try {
-    console.log(
-      `[Background Helper] Attempting to send safe message: ${message.type}`,
-    );
-    chrome.runtime.sendMessage(message, () => {
-      if (chrome.runtime.lastError) {
-        console.info(
-          `[Background Helper] Expected info: Runtime message target closed or not listening (Popup likely closed). Discarding broadcast for type ${message.type}.`,
-        );
-      } else {
-        console.log(
-          `[Background Helper] Message ${message.type} successfully received by active UI components.`,
-        );
-      }
-    });
-  } catch (e) {
-    console.error(
-      "[Background Helper] Critical error occurred while dispatching message:",
-      e,
-    );
+    const persistedState = await readPersistedState();
+    if (persistedState) {
+      analysisState = {
+        ...defaultAnalysisState(),
+        ...persistedState,
+        totalProfiles: PROFILES.length,
+      };
+    }
+  } catch (error) {
+    console.error("[Background] Failed to hydrate persisted state:", error);
+    analysisState = defaultAnalysisState();
   }
 }
+
+async function persistState() {
+  try {
+    await writePersistedState(analysisState);
+  } catch (error) {
+    console.error("[Background] Failed to persist analysis state:", error);
+  }
+}
+
+function openStateDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function readPersistedState(): Promise<AnalysisState | null> {
+  const db = await openStateDatabase();
+
+  return await new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readonly");
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.get(STATE_KEY);
+
+    request.onsuccess = () =>
+      resolve((request.result as AnalysisState) || null);
+    request.onerror = () => reject(request.error);
+    transaction.oncomplete = () => db.close();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+async function writePersistedState(state: AnalysisState) {
+  const db = await openStateDatabase();
+
+  return await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    const store = transaction.objectStore(STORE_NAME);
+    store.put(state, STATE_KEY);
+
+    transaction.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+void hydrateState();
