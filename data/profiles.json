@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-22",
+  "profiles": [
+    { "username": "lulaoficial", "name": "Lula", "side": "left" },
+    { "username": "janjalula", "name": "Janja", "side": "left" },
+    { "username": "fernandohaddadoficial", "name": "Haddad", "side": "left" },
+    { "username": "guilhermeboulos.oficial", "name": "Boulos", "side": "left" },
+    { "username": "jairmessiasbolsonaro", "name": "Bolsonaro", "side": "right" },
+    { "username": "flaviobolsonaro", "name": "Flávio", "side": "right" },
+    { "username": "nikolasferreiradm", "name": "Nikolas", "side": "right" },
+    { "username": "michellebolsonaro", "name": "Michelle", "side": "right" }
+  ]
+}
