@@ -4,20 +4,61 @@ export type Profile = {
   username: string;
   name: string;
   side: "left" | "right";
+  url: string;
 };
 
 export const PROFILES: Profile[] = [
   // Left-wing profiles
-  { username: "lulaoficial", name: "Lula", side: "left" },
-  { username: "janjalula", name: "Janja", side: "left" },
-  { username: "fernandohaddadoficial", name: "Haddad", side: "left" },
-  { username: "guilhermeboulos.oficial", name: "Boulos", side: "left" },
+  {
+    username: "lulaoficial",
+    name: "Lula",
+    side: "left",
+    url: "https://www.instagram.com/lulaoficial/",
+  },
+  {
+    username: "janjalula",
+    name: "Janja",
+    side: "left",
+    url: "https://www.instagram.com/janjalula/",
+  },
+  {
+    username: "fernandohaddadoficial",
+    name: "Haddad",
+    side: "left",
+    url: "https://www.instagram.com/fernandohaddadoficial/",
+  },
+  {
+    username: "guilhermeboulos.oficial",
+    name: "Boulos",
+    side: "left",
+    url: "https://www.instagram.com/guilhermeboulos.oficial/",
+  },
 
   // Right-wing profiles
-  { username: "jairmessiasbolsonaro", name: "Bolsonaro", side: "right" },
-  { username: "flaviobolsonaro", name: "Flávio", side: "right" },
-  { username: "nikolasferreiradm", name: "Nikolas", side: "right" },
-  { username: "michellebolsonaro", name: "Michelle", side: "right" },
+  {
+    username: "jairmessiasbolsonaro",
+    name: "Bolsonaro",
+    side: "right",
+    url: "https://www.instagram.com/jairmessiasbolsonaro/",
+  },
+  {
+    username: "flaviobolsonaro",
+    name: "Flávio",
+    side: "right",
+    url: "https://www.instagram.com/flaviobolsonaro/",
+  },
+  {
+    username: "nikolasferreiradm",
+    name: "Nikolas",
+    side: "right",
+    url: "https://www.instagram.com/nikolasferreiradm/",
+  },
+  {
+    username: "michellebolsonaro",
+    name: "Michelle",
+    side: "right",
+    url: "https://www.instagram.com/michellebolsonaro/",
+  },
 ];
 
 export const RANDOM_SUBTITLES = [

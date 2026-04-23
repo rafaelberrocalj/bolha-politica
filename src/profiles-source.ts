@@ -155,11 +155,15 @@ function validateEntry(entry: unknown): Profile | null {
   if (candidate.side !== "left" && candidate.side !== "right") {
     return null;
   }
+  if (typeof candidate.url !== "string" || candidate.url.length === 0) {
+    return null;
+  }
 
   return {
     username: candidate.username,
     name: candidate.name,
     side: candidate.side,
+    url: candidate.url,
   };
 }
 

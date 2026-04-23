@@ -80,8 +80,18 @@ const validRemotePayload = {
   version: 1,
   updatedAt: "2026-04-22",
   profiles: [
-    { username: "alpha", name: "Alpha", side: "left" },
-    { username: "bravo", name: "Bravo", side: "right" },
+    {
+      username: "alpha",
+      name: "Alpha",
+      side: "left",
+      url: "https://www.instagram.com/alpha/",
+    },
+    {
+      username: "bravo",
+      name: "Bravo",
+      side: "right",
+      url: "https://www.instagram.com/bravo/",
+    },
   ],
 };
 
@@ -105,8 +115,18 @@ describe("getProfiles", () => {
 
   it("returns cached profiles when cache is fresh (< 24h old)", async () => {
     const cachedProfiles = [
-      { username: "cached-one", name: "Cached One", side: "left" },
-      { username: "cached-two", name: "Cached Two", side: "right" },
+      {
+        username: "cached-one",
+        name: "Cached One",
+        side: "left" as const,
+        url: "https://www.instagram.com/cached-one/",
+      },
+      {
+        username: "cached-two",
+        name: "Cached Two",
+        side: "right" as const,
+        url: "https://www.instagram.com/cached-two/",
+      },
     ];
     await writeCache({
       fetchedAt: Date.now() - (PROFILES_CACHE_TTL_MS - MS_IN_MINUTE),
@@ -129,7 +149,14 @@ describe("getProfiles", () => {
       fetchedAt: Date.now() - (PROFILES_CACHE_TTL_MS + MS_IN_MINUTE),
       version: SUPPORTED_SCHEMA_VERSION,
       updatedAt: "2026-04-22",
-      profiles: [{ username: "stale", name: "Stale", side: "left" }],
+      profiles: [
+        {
+          username: "stale",
+          name: "Stale",
+          side: "left" as const,
+          url: "https://www.instagram.com/stale/",
+        },
+      ],
     });
 
     const fetchMock = mockFetchOk(validRemotePayload);
@@ -194,7 +221,14 @@ describe("getProfiles", () => {
     const unknownSchema = {
       version: 99,
       updatedAt: "2026-04-22",
-      profiles: [{ username: "x", name: "X", side: "left" }],
+      profiles: [
+        {
+          username: "x",
+          name: "X",
+          side: "left",
+          url: "https://www.instagram.com/x/",
+        },
+      ],
     };
     const fetchMock = mockFetchOk(unknownSchema);
     vi.stubGlobal("fetch", fetchMock);
@@ -237,13 +271,22 @@ describe("getProfiles", () => {
     expect(cached?.updatedAt).toBe(validRemotePayload.updatedAt);
   });
 
-  it("validates individual profile entries (rejects entries missing username/name/side)", async () => {
+  it("validates individual profile entries (rejects entries missing username/name/side/url)", async () => {
     const invalidPayload = {
       version: 1,
       updatedAt: "2026-04-22",
       profiles: [
-        { username: "good", name: "Good", side: "left" },
-        { username: "no-name", side: "right" },
+        {
+          username: "good",
+          name: "Good",
+          side: "left",
+          url: "https://www.instagram.com/good/",
+        },
+        {
+          username: "no-name",
+          side: "right",
+          url: "https://www.instagram.com/no-name/",
+        },
       ],
     };
     const fetchMock = mockFetchOk(invalidPayload);
@@ -258,7 +301,14 @@ describe("getProfiles", () => {
     const invalidSide = {
       version: 1,
       updatedAt: "2026-04-22",
-      profiles: [{ username: "alpha", name: "Alpha", side: "center" }],
+      profiles: [
+        {
+          username: "alpha",
+          name: "Alpha",
+          side: "center",
+          url: "https://www.instagram.com/alpha/",
+        },
+      ],
     };
     const fetchMock = mockFetchOk(invalidSide);
     vi.stubGlobal("fetch", fetchMock);
@@ -268,8 +318,29 @@ describe("getProfiles", () => {
     expect(result).toEqual(PROFILES);
   });
 
+  it("falls back to bundled when a profile entry is missing url", async () => {
+    const missingUrl = {
+      version: 1,
+      updatedAt: "2026-04-22",
+      profiles: [{ username: "alpha", name: "Alpha", side: "left" }],
+    };
+    const fetchMock = mockFetchOk(missingUrl);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getProfiles();
+
+    expect(result).toEqual(PROFILES);
+  });
+
   it("treats cache as miss when cached version mismatches SUPPORTED_SCHEMA_VERSION", async () => {
-    const cachedProfiles = [{ username: "old", name: "Old", side: "left" }];
+    const cachedProfiles = [
+      {
+        username: "old",
+        name: "Old",
+        side: "left" as const,
+        url: "https://www.instagram.com/old/",
+      },
+    ];
     await writeCache({
       fetchedAt: Date.now() - (PROFILES_CACHE_TTL_MS - MS_IN_MINUTE), // fresh by age
       version: 99, // wrong version
