@@ -1,46 +1,54 @@
 # Minha Bolha Política
 
-Extensão de navegador que analisa sua bolha política no Instagram com base em conexões mútuas com perfis públicos pré-definidos. O resultado mostra um comparativo entre `esquerda` e `direita`, exibe uma mensagem irônica e permite gerar uma imagem para compartilhamento.
+Extensão local para navegador que analisa sua bolha política no Instagram usando sua sessão já autenticada.
 
-Este projeto não é afiliado ao Instagram.
+Ela compara quantos amigos em comum você tem com perfis públicos pré-definidos de esquerda e de direita, mostra percentuais que somam 100%, exibe uma mensagem irônica e permite exportar uma imagem para compartilhar.
+
+Disponível na Chrome Web Store: https://chromewebstore.google.com/detail/minha-bolha-pol%C3%ADtica/flgnjmedoddphfekpjfaggneaeeolhci
+
+> Este projeto não é afiliado ao Instagram.
 
 ## Visão geral
 
-A extensão foi construída para funcionar localmente no navegador e usa a sessão já autenticada do usuário no Instagram para consultar dados públicos de perfis configurados no projeto.
+A extensão funciona diretamente no navegador e depende do Instagram aberto e logado. Ela injeta a interface sobre a própria página do Instagram, consulta perfis públicos definidos no projeto e calcula o resultado com base nas conexões mútuas.
 
-Importante:
+### Como usar
 
-- o fluxo da extensão depende de contexto ativo do `instagram.com`
-- se o usuário clicar no ícone fora do Instagram, a extensão abre uma nova aba do Instagram antes de mostrar sua interface
-- se o usuário já estiver em `instagram.com`, a interface da extensão é aberta sobre a própria página, sem popup e sem aba separada para a interface
-- cada clique no ícone reinicia a interface no estado inicial de `Iniciar Análise`
+- Abra uma aba em `https://www.instagram.com/` e certifique-se de estar logado.
+- Clique no ícone da extensão.
+- Se estiver fora do Instagram, a extensão abre uma aba em `instagram.com` antes de iniciar.
+- A interface aparece sobre a página do Instagram, e a análise é executada localmente no navegador.
 
-Fluxo principal:
+## Uso rápido
 
-- ao clicar no ícone, verifica se a aba atual está em `instagram.com`
-- se não estiver, abre uma nova aba do Instagram antes de exibir a interface da extensão
-- a interface é exibida como painel sobre a própria página do Instagram
-- consulta perfis públicos definidos no projeto
-- lê a quantidade de amigos em comum com cada perfil
-- agrega os resultados por lado político
-- mostra uma mensagem irônica e, abaixo das barras, um card percentual destacado do tipo `Seus amigos tendem a ser X% para ESQUERDA/DIREITA`
-- mostra um resumo visual na interface da extensão
-- permite exportar uma imagem em proporção de storie para Instagram, baixada localmente pelo navegador
+### O que a extensão faz
+
+- Analisa quantos amigos em comum você tem com perfis políticos de esquerda e de direita.
+- Exibe dois percentuais que somam 100%.
+- Mostra uma mensagem irônica sobre a sua bolha política.
+- Gera uma imagem exportável para compartilhar o resultado.
+
+### Requisitos
+
+- Sessão ativa no Instagram.
+- Aba aberta em `https://www.instagram.com/`.
+- Navegador compatível com extensões Chrome Manifest V3.
+- Permissão de host para `https://*.instagram.com/*`.
 
 ## Como funciona
 
-Os principais pontos do projeto são:
+### Principais arquivos
 
-- [background.ts](src/background.ts)
-  Faz as requisições ao Instagram, agrega os resultados, reseta a interface a cada clique no ícone e persiste estado temporário local apenas para tolerar o ciclo de vida do service worker no MV3 durante a execução.
-- [popup.ts](src/popup.ts)
-  Renderiza a interface da extensão, acompanha o progresso via mensagens com o background, exibe os totais, trata falhas de forma visível, mostra o percentual final em um card destacado abaixo das barras e gera a imagem de compartilhamento.
-- [content.ts](src/content.ts)
-  Injeta a interface da extensão sobre a própria página do Instagram quando o usuário clica no ícone.
-- [content.css](src/content.css)
-  Controla o overlay centralizado da interface sobre a página do Instagram.
-- [config.ts](src/config.ts)
-  Centraliza a lista de perfis analisados, subtítulos, mensagens de carregamento e textos irônicos.
+- `src/background.ts`
+  - Executa as requisições ao Instagram, agrega resultados e mantém o estado temporário de análise.
+- `src/popup.ts`
+  - Renderiza a interface, mostra progresso, exibe totais e gera a imagem de compartilhamento.
+- `src/content.ts`
+  - Injeta a interface sobre a página do Instagram.
+- `src/content.css`
+  - Estiliza o overlay centralizado sobre o Instagram.
+- `src/config.ts`
+  - Define perfis, mensagens de carregamento e textos irônicos.
 
 ## Stack
 
@@ -51,44 +59,35 @@ Os principais pontos do projeto são:
 
 ## Permissões usadas
 
-O projeto usa o menor conjunto de permissões necessário para funcionar no estado atual:
-
 - `host_permissions` para `https://*.instagram.com/*`
-  Usada para permitir as requisições à API web do Instagram a partir do service worker da extensão.
+
+Isso é necessário para permitir que o service worker realize consultas ao Instagram enquanto a extensão está ativa.
 
 Manifesto atual:
 
 - [manifest.json](manifest.json)
 
-## Requisitos
+## Desenvolvimento
 
-- Node.js 20+ recomendado
-- npm
-- Google Chrome ou navegador compatível com extensões MV3
-- sessão ativa no Instagram
-- acesso ao `instagram.com` no navegador no momento de uso
-
-## Instalação
+### Instalação
 
 ```bash
 npm install
 ```
 
-## Desenvolvimento
-
-Para gerar o build da extensão:
+### Build
 
 ```bash
 npm run build
 ```
 
-Para acompanhar mudanças durante o desenvolvimento:
+### Modo de desenvolvimento
 
 ```bash
 npm run watch
 ```
 
-## Como carregar a extensão no Chrome
+### Carregar no Chrome
 
 1. Rode `npm run build`.
 2. Abra `chrome://extensions`.
@@ -116,25 +115,10 @@ README.md
 PRIVACY.md
 ```
 
-## Política de Privacidade
-
-A política de privacidade do projeto está em:
+## Privacidade
 
 - [PRIVACY.md](PRIVACY.md)
 
-## Instruções para Review
-
-Um passo a passo enxuto para reviewers e testes manuais está em:
+## Instruções para review
 
 - [TEST_INSTRUCTIONS.md](TEST_INSTRUCTIONS.md)
-
-## Observações
-
-- a interface da extensão é aberta a partir do clique no ícone e o fluxo exige contexto do Instagram
-- fora do Instagram, o clique abre primeiro uma nova aba em `https://www.instagram.com/` e só então mostra a interface
-- a interface não abre em popup nem em aba separada da extensão; ela aparece sobre a página do Instagram
-- cada clique no ícone reinicia a análise no estado inicial, mesmo que exista um resultado anterior
-- o estado temporário da análise pode ser preservado localmente pelo navegador apenas para recuperar a execução se o service worker reiniciar durante uma análise em andamento
-- se no futuro a extensão migrar para `side panel`, a experiência pode ficar mais persistente
-- se o fluxo de coleta mudar, a política de privacidade também deve ser revisada para continuar fiel ao comportamento real do código
-- a extensão depende da resposta atual da web do Instagram e pode parar de funcionar se a estrutura da plataforma mudar
