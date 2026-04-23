@@ -1,57 +1,23 @@
 // Static data configuration and environment constants for Minha Bolha Politica Extension
 
-export const PROFILES = [
+export type Profile = {
+  username: string;
+  name: string;
+  side: "left" | "right";
+};
+
+export const PROFILES: Profile[] = [
   // Left-wing profiles
-  {
-    username: "lulaoficial",
-    label: "Lula",
-    side: "left",
-    url: "https://www.instagram.com/lulaoficial/",
-  },
-  {
-    username: "janjalula",
-    label: "Janja",
-    side: "left",
-    url: "https://www.instagram.com/janjalula/",
-  },
-  {
-    username: "fernandohaddadoficial",
-    label: "Haddad",
-    side: "left",
-    url: "https://www.instagram.com/fernandohaddadoficial/",
-  },
-  {
-    username: "guilhermeboulos.oficial",
-    label: "Boulos",
-    side: "left",
-    url: "https://www.instagram.com/guilhermeboulos.oficial/",
-  },
+  { username: "lulaoficial", name: "Lula", side: "left" },
+  { username: "janjalula", name: "Janja", side: "left" },
+  { username: "fernandohaddadoficial", name: "Haddad", side: "left" },
+  { username: "guilhermeboulos.oficial", name: "Boulos", side: "left" },
 
   // Right-wing profiles
-  {
-    username: "jairmessiasbolsonaro",
-    label: "Bolsonaro",
-    side: "right",
-    url: "https://www.instagram.com/jairmessiasbolsonaro/",
-  },
-  {
-    username: "flaviobolsonaro",
-    label: "Flávio",
-    side: "right",
-    url: "https://www.instagram.com/flaviobolsonaro/",
-  },
-  {
-    username: "nikolasferreiradm",
-    label: "Nikolas",
-    side: "right",
-    url: "https://www.instagram.com/nikolasferreiradm/",
-  },
-  {
-    username: "michellebolsonaro",
-    label: "Michelle",
-    side: "right",
-    url: "https://www.instagram.com/michellebolsonaro/",
-  },
+  { username: "jairmessiasbolsonaro", name: "Bolsonaro", side: "right" },
+  { username: "flaviobolsonaro", name: "Flávio", side: "right" },
+  { username: "nikolasferreiradm", name: "Nikolas", side: "right" },
+  { username: "michellebolsonaro", name: "Michelle", side: "right" },
 ];
 
 export const RANDOM_SUBTITLES = [
