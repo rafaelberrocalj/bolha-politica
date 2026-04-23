@@ -26,18 +26,18 @@ jobs:
       - name: Build extension
         run: npm run build
 
-      - name: Read manifest version
-        id: manifest
+      - name: Read project version
+        id: version
         run: |
-          echo "version=$(node -p "require('./manifest.json').version")" >> "$GITHUB_OUTPUT"
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Prepare release metadata
         id: meta
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
           TIMESTAMP="$(date -u +'%Y%m%d-%H%M%S')"
-          TAG="main-${TIMESTAMP}-${SHORT_SHA}"
-          ZIP_NAME="minha-bolha-politica-v${{ steps.manifest.outputs.version }}-${SHORT_SHA}.zip"
+          TAG="v${{ steps.version.outputs.version }}-${TIMESTAMP}-${SHORT_SHA}"
+          ZIP_NAME="minha-bolha-politica-v${{ steps.version.outputs.version }}-${SHORT_SHA}.zip"
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
@@ -51,10 +51,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
-          name: Minha Bolha Politica ${{ steps.manifest.outputs.version }} (${{ github.sha }})
+          name: Minha Bolha Politica v${{ steps.version.outputs.version }} (${{ github.sha }})
           body: |
             Build automatico gerado a partir de um push na branch `main`.
 
             Commit: `${{ github.sha }}`
-            Versao do manifest: `${{ steps.manifest.outputs.version }}`
+            Versao do projeto: `${{ steps.version.outputs.version }}`
           files: ${{ steps.meta.outputs.zip_name }}
