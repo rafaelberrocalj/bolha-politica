@@ -21,15 +21,15 @@
   --primary-gradient: linear-gradient(
     to right,
     #e53e3e 0%,
-    #e53e3e 85%,
+    #e53e3e 50%,
     #f6ad55 100%
-  ); /* Strong red fading into orange at the tail */
+  ); /* 50% red, 50% orange */
   --secondary-gradient: linear-gradient(
     to right,
     #ecc94b 0%,
-    #ecc94b 85%,
+    #ecc94b 50%,
     #48bb78 100%
-  ); /* Strong yellow fading into green at the tail */
+  ); /* 50% yellow, 50% green */
 
   --radius: 16px;
   --font:
@@ -275,6 +275,27 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.percentage {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.left .percentage {
+  color: var(--primary);
+}
+
+.right .percentage {
+  color: var(--secondary);
 }
 
 .label {

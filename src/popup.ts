@@ -34,6 +34,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const progressRightWingBar = document.getElementById("bar-right-wing");
   const counterLeftWingTag = document.getElementById("count-left-wing");
   const counterRightWingTag = document.getElementById("count-right-wing");
+  const percentLeftWingTag = document.getElementById("percent-left-wing");
+  const percentRightWingTag = document.getElementById("percent-right-wing");
   const resultSummaryCard = document.getElementById("result-summary-card");
   const resultHeadline = document.getElementById("result-headline");
   const resultIronyParagraph = document.getElementById("result-irony");
@@ -211,16 +213,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       `[Popup Computations] Left Wing Interaction Node Total: ${leftWingScore}. Right Wing Node Total: ${rightWingScore}`,
     );
 
+    const leftBarPercent =
+      combinedInteractivityTotal === 0
+        ? 0
+        : Math.round((leftWingScore / combinedInteractivityTotal) * 100);
+    const rightBarPercent =
+      combinedInteractivityTotal === 0 ? 0 : 100 - leftBarPercent;
+
     if (counterLeftWingTag)
       counterLeftWingTag.innerText = `${leftWingScore} amigos`;
     if (counterRightWingTag)
       counterRightWingTag.innerText = `${rightWingScore} amigos`;
-
-    const dominantScore = Math.max(leftWingScore, rightWingScore);
-    const dominantPercentage =
-      combinedInteractivityTotal === 0
-        ? 0
-        : Math.round((dominantScore / combinedInteractivityTotal) * 100);
+    if (percentLeftWingTag) percentLeftWingTag.innerText = `${leftBarPercent}%`;
+    if (percentRightWingTag)
+      percentRightWingTag.innerText = `${rightBarPercent}%`;
     const dominantSideLabel =
       leftWingScore === rightWingScore
         ? "equilibrados"
@@ -240,9 +246,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         "balanced",
       );
       resultHeadline.innerText =
-        dominantSideLabel === "equilibrados"
-          ? "Seus amigos tendem a ser 50% para cada lado"
-          : `Seus amigos tendem a ser ${dominantPercentage}% para ${dominantSideLabel}`;
+        combinedInteractivityTotal === 0
+          ? "Seus amigos ainda não foram analisados"
+          : dominantSideLabel === "equilibrados"
+            ? "Seus amigos tendem a ser 50% para cada lado"
+            : `Seus amigos tendem a ser ${leftBarPercent}% ESQUERDA e ${rightBarPercent}% DIREITA`;
 
       if (dominantSideLabel === "ESQUERDA") {
         resultSummaryCard?.classList.add("left-dominant");
@@ -265,11 +273,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (progressLeftWingBar) progressLeftWingBar.style.width = "0%";
         if (progressRightWingBar) progressRightWingBar.style.width = "0%";
       } else {
-        const dominatingFactor = Math.max(leftWingScore, rightWingScore);
         if (progressLeftWingBar)
-          progressLeftWingBar.style.width = `${(leftWingScore / dominatingFactor) * 100}%`;
+          progressLeftWingBar.style.width = `${leftBarPercent}%`;
         if (progressRightWingBar)
-          progressRightWingBar.style.width = `${(rightWingScore / dominatingFactor) * 100}%`;
+          progressRightWingBar.style.width = `${rightBarPercent}%`;
       }
     }, 100);
 
