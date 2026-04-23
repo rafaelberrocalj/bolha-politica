@@ -1,28 +1,35 @@
 // Static data configuration and environment constants for Minha Bolha Politica Extension
 
-export const PROFILES = [
+export type Profile = {
+  username: string;
+  name: string;
+  side: "left" | "right";
+  url: string;
+};
+
+export const PROFILES: Profile[] = [
   // Left-wing profiles
   {
     username: "lulaoficial",
-    label: "Lula",
+    name: "Lula",
     side: "left",
     url: "https://www.instagram.com/lulaoficial/",
   },
   {
     username: "janjalula",
-    label: "Janja",
+    name: "Janja",
     side: "left",
     url: "https://www.instagram.com/janjalula/",
   },
   {
     username: "fernandohaddadoficial",
-    label: "Haddad",
+    name: "Haddad",
     side: "left",
     url: "https://www.instagram.com/fernandohaddadoficial/",
   },
   {
     username: "guilhermeboulos.oficial",
-    label: "Boulos",
+    name: "Boulos",
     side: "left",
     url: "https://www.instagram.com/guilhermeboulos.oficial/",
   },
@@ -30,25 +37,25 @@ export const PROFILES = [
   // Right-wing profiles
   {
     username: "jairmessiasbolsonaro",
-    label: "Bolsonaro",
+    name: "Bolsonaro",
     side: "right",
     url: "https://www.instagram.com/jairmessiasbolsonaro/",
   },
   {
     username: "flaviobolsonaro",
-    label: "Flávio",
+    name: "Flávio",
     side: "right",
     url: "https://www.instagram.com/flaviobolsonaro/",
   },
   {
     username: "nikolasferreiradm",
-    label: "Nikolas",
+    name: "Nikolas",
     side: "right",
     url: "https://www.instagram.com/nikolasferreiradm/",
   },
   {
     username: "michellebolsonaro",
-    label: "Michelle",
+    name: "Michelle",
     side: "right",
     url: "https://www.instagram.com/michellebolsonaro/",
   },

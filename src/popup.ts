@@ -7,6 +7,14 @@ import {
   IRONIC_MESSAGES,
 } from "./config";
 
+type SessionState = {
+  status?: "IDLE" | "RUNNING" | "COMPLETE" | "ERROR";
+  results?: Record<string, number>;
+  totals?: { left: number; right: number };
+  totalProfiles?: number;
+  lastError?: string | null;
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
   console.log(
     "[Popup] DOMContentLoaded triggered. UI Initialization running...",
@@ -42,7 +50,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnShare = document.getElementById("btn-share");
 
   console.log("[Popup] Fetching current analysis state from background...");
-  const sessionConfig = await sendRuntimeMessage({
+  const sessionConfig = await sendRuntimeMessage<SessionState>({
     type: "GET_ANALYSIS_STATE",
   });
 
@@ -122,7 +130,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   let loaderTicks = 0;
   const uiPollingInterval = setInterval(async () => {
     if (viewLoading?.classList.contains("active")) {
-      const state = await sendRuntimeMessage({ type: "GET_ANALYSIS_STATE" });
+      const state = await sendRuntimeMessage<SessionState>({
+        type: "GET_ANALYSIS_STATE",
+      });
       syncLoadingProgress(state);
 
       // Animate random loading subtext every ~2 seconds (4 cycles)

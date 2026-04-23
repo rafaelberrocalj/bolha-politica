@@ -1,9 +1,13 @@
-import { PROFILES } from "./config";
+import { getProfiles, Profile } from "./profiles-source";
 
 const IG_APP_ID = "936619743392459"; // Default web Instagram App ID
 const DB_NAME = "minha-bolha-politica";
+const DB_VERSION = 2; // coordinated with profiles-source.ts (profiles-cache store)
 const STORE_NAME = "extension-state";
+const PROFILES_CACHE_STORE_NAME = "profiles-cache";
 const STATE_KEY = "analysis-state";
+
+let profilesCache: Profile[] = [];
 
 type AnalysisStatus = "IDLE" | "RUNNING" | "COMPLETE" | "ERROR";
 
@@ -21,7 +25,7 @@ const defaultAnalysisState = (): AnalysisState => ({
   results: {},
   totals: { left: 0, right: 0 },
   status: "IDLE",
-  totalProfiles: PROFILES.length,
+  totalProfiles: profilesCache.length,
   isAnalysisPending: false,
   lastError: null,
   updatedAt: null,
@@ -91,6 +95,7 @@ async function handleStartAnalysis() {
 
 async function startBackgroundAnalysis() {
   const runId = ++activeAnalysisRunId;
+  profilesCache = await getProfiles();
   analysisState = {
     ...defaultAnalysisState(),
     status: "RUNNING",
@@ -107,7 +112,7 @@ async function startBackgroundAnalysis() {
   let successfulProfiles = 0;
   const failedProfiles: string[] = [];
 
-  for (const profile of PROFILES) {
+  for (const profile of profilesCache) {
     if (runId !== activeAnalysisRunId) {
       console.log("[Background] Analysis run was superseded. Aborting early.");
       return;
@@ -169,7 +174,7 @@ async function startBackgroundAnalysis() {
   let totalLeft = 0;
   let totalRight = 0;
 
-  for (const profile of PROFILES) {
+  for (const profile of profilesCache) {
     if (typeof analysisState.results[profile.username] === "number") {
       if (profile.side === "left")
         totalLeft += analysisState.results[profile.username];
@@ -239,7 +244,7 @@ function waitForTabCompletion(tabId?: number) {
 
     const handleUpdatedTab = (
       updatedTabId: number,
-      changeInfo: chrome.tabs.TabChangeInfo,
+      changeInfo: chrome.tabs.OnUpdatedInfo,
     ) => {
       if (updatedTabId !== tabId || changeInfo.status !== "complete") {
         return;
@@ -349,12 +354,13 @@ function safeSendMessage(message: any) {
 
 async function hydrateState() {
   try {
+    profilesCache = await getProfiles();
     const persistedState = await readPersistedState();
     if (persistedState) {
       analysisState = {
         ...defaultAnalysisState(),
         ...persistedState,
-        totalProfiles: PROFILES.length,
+        totalProfiles: profilesCache.length,
       };
     }
   } catch (error) {
@@ -373,12 +379,15 @@ async function persistState() {
 
 function openStateDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains(PROFILES_CACHE_STORE_NAME)) {
+        db.createObjectStore(PROFILES_CACHE_STORE_NAME);
       }
     };
 
