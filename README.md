@@ -99,26 +99,30 @@ npm run watch
 
 ```text
 src/
-  background.ts
-  content.ts
-  content.css
-  popup.ts
-  popup.html
-  popup.css
-  config.ts
-assets/
-  icons/
-  webstore/
+  background.ts    # Lógica de service worker e requisições
+  content.ts       # Injeção do overlay na página
+  content.css      # Estilos do overlay
+  popup.ts         # Lógica da interface e renderização
+  popup.html       # Estrutura HTML da UI
+  popup.css        # Estilos visuais da UI
+  config.ts        # Configuração de perfis e mensagens
+docs/
+  privacy.md       # Política de privacidade
+  test-instructions.md # Instruções para teste manual
+.agents/
+  rules/           # Regras para IA e revisão
+assets/            # Ícones e imagens estáticas
 manifest.json
 package.json
-README.md
-PRIVACY.md
 ```
 
-## Privacidade
+## Documentação
 
-- [PRIVACY.md](PRIVACY.md)
+- [Política de Privacidade](docs/privacy.md)
+- [Instruções de Teste](docs/test-instructions.md)
 
-## Instruções para review
+## Diretrizes de IA e Revisão
 
-- [TEST_INSTRUCTIONS.md](TEST_INSTRUCTIONS.md)
+- [.agents/rules/ai-instructions.md](.agents/rules/ai-instructions.md)
+- [.agents/rules/pr-review-rules.md](.agents/rules/pr-review-rules.md)
+- [.agents/rules/project-context.md](.agents/rules/project-context.md)

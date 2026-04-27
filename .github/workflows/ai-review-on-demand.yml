@@ -1,0 +1,110 @@
+name: AI Code Review (On-Demand)
+
+# This workflow only runs when manually triggered via workflow_dispatch.
+# Only people with write access to the repository can trigger it.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Número do PR para revisar'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # --- CI checks ---
+
+      - name: Run TypeScript Check
+        id: tsc_check
+        continue-on-error: true
+        run: npx tsc --noEmit
+
+      - name: Run Build
+        id: build_check
+        continue-on-error: true
+        run: npm run build
+
+      # --- Collect PR info ---
+
+      - name: Get PR Information
+        id: pr_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: bash .github/workflows/scripts/collect-pr-info.sh
+
+      # --- Build prompt and call Gemini ---
+
+      - name: Prepare context and call Gemini API
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          PR_TITLE: ${{ steps.pr_info.outputs.pr_title }}
+          PR_BODY: ${{ steps.pr_info.outputs.pr_body }}
+          TSC_OUTCOME: ${{ steps.tsc_check.outcome }}
+          BUILD_OUTCOME: ${{ steps.build_check.outcome }}
+        run: |
+          # Load project context files into env
+          export PROJECT_CONTEXT=""
+          if [ -f "AI_GUIDELINES.md" ]; then
+            export PROJECT_CONTEXT="$(cat AI_GUIDELINES.md)"
+          fi
+          if [ -f "PR_REVIEW_GUIDELINES.md" ]; then
+            REVIEW_GUIDELINES="$(cat PR_REVIEW_GUIDELINES.md)"
+            export PROJECT_CONTEXT="${PROJECT_CONTEXT}
+
+          ${REVIEW_GUIDELINES}"
+          fi
+          if [ -f ".agents/rules/project-context.md" ]; then
+            REPO_CONTEXT="$(cat .agents/rules/project-context.md)"
+            export PROJECT_CONTEXT="${PROJECT_CONTEXT}
+
+          ${REPO_CONTEXT}"
+          fi
+          if [ -f ".specify/memory/constitution.md" ]; then
+            CONSTITUTION="$(cat .specify/memory/constitution.md)"
+            export PROJECT_CONTEXT="${PROJECT_CONTEXT}
+
+          ${CONSTITUTION}"
+          fi
+
+          # Load PR diff into env
+          export PR_DIFF="$(cat /tmp/pr_diff.txt)"
+
+          # Map CI outcomes to human-readable status
+          export TSC_RESULT="✅ Passou"
+          [ "$TSC_OUTCOME" != "success" ] && export TSC_RESULT="❌ Falhou"
+          export BUILD_RESULT="✅ Passou"
+          [ "$BUILD_OUTCOME" != "success" ] && export BUILD_RESULT="❌ Falhou"
+
+          # Call Gemini via external script
+          python3 .github/workflows/scripts/call-gemini.py
+
+      # --- Post review ---
+
+      - name: Post Review Comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: bash .github/workflows/scripts/post-review.sh

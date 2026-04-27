@@ -57,23 +57,26 @@ const PROFILES = [
 
 ---
 
-## Stack
+## Stack e Diretrizes de IA
 
-- **Linguagem Foco:** TypeScript e CSS
-- **Código e Comentários:** Tudo (variáveis, métodos, logs e comments - até no CSS) deve ser escrito em Inglês como regra fundamental. Apenas textos da UI pro usuário podem ser em Português.
-- **Manifest:** V3 (padrão atual do Chrome)
+- **Linguagem Foco:** TypeScript e CSS.
+- **Regras de Idioma:**
+    - **Código e Comentários:** Tudo que for código-fonte (`src/`), incluindo variáveis, métodos, logs e comentários técnicos, deve ser escrito em **Inglês**.
+    - **Todo o Resto:** Arquivos de documentação (`.md`), textos da UI, instruções de IA e comunicações devem ser em **Português (pt-BR)**.
+- **Diretrizes de IA:** Qualquer IA atuando neste projeto deve seguir rigorosamente as regras em [.agents/rules/ai-instructions.md](file:///Users/rafaelberrocalj/LocalDocuments/GitHub/bolha-politica/.agents/rules/ai-instructions.md) e [.agents/rules/pr-review-rules.md](file:///Users/rafaelberrocalj/LocalDocuments/GitHub/bolha-politica/.agents/rules/pr-review-rules.md).
+- **Manifest:** V3 (padrão atual do Chrome).
 - **Construção Segura (Linter):** Sempre rodar linter de formatação automático antes de iniciar o build (ex: prettier incluído).
-- **Sem frameworks de UI.** A interface deve ser HTML/CSS/TS puro, injetada sobre o Instagram.
+- **Sem frameworks de UI:** A interface deve ser HTML/CSS/TS puro, injetada sobre o Instagram.
 - **Sem dependências externas desnecessárias.**
 
 ---
 
 ## Regras de privacidade (inegociáveis)
 
-- Nenhum dado do usuário é enviado para servidor externo
-- Todo processamento acontece localmente no browser do usuário
-- Apenas persistência local temporária estritamente funcional é aceitável para tolerar o ciclo de vida do service worker no MV3; isso não pode virar histórico permanente do usuário
-- Não usa a API oficial do Instagram (Graph API)
+- Nenhum dado do usuário é enviado para servidor externo. **Chamadas remotas para qualquer domínio que não seja o Instagram são estritamente proibidas.**
+- Todo processamento e geração de conteúdo acontece localmente no browser do usuário.
+- Apenas persistência local temporária estritamente funcional é aceitável para tolerar o ciclo de vida do service worker no MV3; isso não pode virar histórico permanente do usuário.
+- Não usa a API oficial do Instagram (Graph API) e não faz telemetria.
 
 ---
 
@@ -95,20 +98,24 @@ Exemplos:
 bolha-politica/
 ├── .agents/
 │   ├── rules/
-│   │   └── project-context.md
+│   │   ├── project-context.md   # Contexto mestre do projeto
+│   │   ├── ai-instructions.md   # Diretrizes de comportamento de IA
+│   │   └── pr-review-rules.md   # Regras para revisão de PRs
 │   └── skills/
 │       └── instagram-interception/
 │           └── SKILL.md
-├── .specify/
-│   └── memory/
-│       └── constitution.md
+├── docs/
+│   ├── privacy.md               # Política de privacidade
+│   └── test-instructions.md     # Guia de testes manuais
 ├── src/
-│   ├── background.ts        # service worker — faz as requests REST direto e coordena a abertura da interface
-│   ├── content.ts           # injeta o overlay sobre o Instagram
-│   ├── content.css          # estilização do overlay
-│   ├── popup.ts             # lógica orgânica e renderização DOM da interface
-│   ├── popup.html           # interface carregada dentro do overlay
-│   └── popup.css            # estilização visual com feedback
+│   ├── background.ts            # Service worker (logic/requests)
+│   ├── content.ts               # Overlay injection
+│   ├── content.css              # Overlay styling
+│   ├── popup.ts                 # UI logic and rendering
+│   ├── popup.html               # UI structure
+│   ├── popup.css                # UI styling
+│   └── config.ts                # App configuration (profiles/messages)
+├── assets/                      # Icons and static assets
 ├── manifest.json
 ├── tsconfig.json
 └── package.json

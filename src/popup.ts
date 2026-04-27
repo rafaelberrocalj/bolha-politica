@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (errorTextEl) {
       errorTextEl.innerText =
         message ||
-        "Nao foi possivel concluir a analise. Verifique sua sessao no Instagram e tente novamente.";
+        "Não foi possível concluir a análise. Verifique sua sessão no Instagram e tente novamente.";
     }
     switchLayoutView("view-error");
   }
@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const ctx = canvas.getContext("2d");
 
     if (!ctx) {
-      console.error("[Popup Export] Canvas 2D indisponivel para exportacao.");
+      console.error("[Popup Export] Canvas 2D indisponível para exportação.");
       alert("Não foi possível gerar a imagem do story. Tente novamente.");
       return;
     }

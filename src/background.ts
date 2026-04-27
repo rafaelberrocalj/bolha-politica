@@ -182,12 +182,11 @@ async function startBackgroundAnalysis() {
   analysisState.updatedAt = Date.now();
 
   if (successfulProfiles === 0) {
-    analysisState.status = "ERROR";
     analysisState.lastError =
-      "Nao foi possivel carregar os perfis do Instagram. Verifique se voce esta logado, se os perfis seguem publicos e tente novamente.";
+      "Não foi possível carregar os perfis do Instagram. Verifique se você está logado, se os perfis seguem públicos e tente novamente.";
   } else if (failedProfiles.length > 0) {
     analysisState.status = "COMPLETE";
-    analysisState.lastError = `Alguns perfis nao puderam ser analisados: ${failedProfiles.join(", ")}.`;
+    analysisState.lastError = `Alguns perfis não puderam ser analisados: ${failedProfiles.join(", ")}.`;
   } else {
     analysisState.status = "COMPLETE";
     analysisState.lastError = null;
