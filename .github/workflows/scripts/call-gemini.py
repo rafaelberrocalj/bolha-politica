@@ -16,6 +16,7 @@ import json
 import sys
 import urllib.request
 import urllib.error
+import time
 
 
 def load_prompt_template(template_path: str) -> str:
@@ -40,7 +41,7 @@ def load_prompt_template(template_path: str) -> str:
 
 
 def call_gemini(api_key: str, prompt: str) -> str:
-    """Send the prompt to Gemini 2.5 Flash and return the generated text."""
+    """Send the prompt to Gemini 2.5 Flash and return the generated text with exponential backoff."""
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"gemini-2.5-flash:generateContent?key={api_key}"
@@ -65,23 +66,38 @@ def call_gemini(api_key: str, prompt: str) -> str:
         method="POST",
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8")
-        print(f"❌ Gemini API error ({e.code}): {body}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Request failed: {e}")
-        sys.exit(1)
+    max_retries = 5
+    base_delay = 2
 
-    try:
-        return result["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError) as e:
-        print(f"❌ Unexpected API response structure: {e}")
-        print(json.dumps(result, indent=2)[:2000])
-        sys.exit(1)
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            
+            # If success, break the retry loop and return the text
+            try:
+                return result["candidates"][0]["content"]["parts"][0]["text"]
+            except (KeyError, IndexError) as e:
+                print(f"❌ Unexpected API response structure: {e}")
+                print(json.dumps(result, indent=2)[:2000])
+                sys.exit(1)
+
+        except urllib.error.HTTPError as e:
+            # Retry on 429 (Rate Limit) and 503 (Service Unavailable)
+            if e.code in [429, 503] and attempt < max_retries - 1:
+                delay = min(base_delay * (2 ** attempt), 15)
+                print(f"⚠️ Gemini API busy ({e.code}). Retrying in {delay}s (Attempt {attempt + 1}/{max_retries})...")
+                time.sleep(delay)
+                continue
+            
+            body = e.read().decode("utf-8")
+            print(f"❌ Gemini API error ({e.code}): {body}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"❌ Request failed: {e}")
+            sys.exit(1)
+
+    return "" # Should not be reached
 
 
 def main():
