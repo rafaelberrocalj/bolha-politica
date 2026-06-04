@@ -126,3 +126,7 @@ package.json
 - [.agents/rules/ai-instructions.md](.agents/rules/ai-instructions.md)
 - [.agents/rules/pr-review-rules.md](.agents/rules/pr-review-rules.md)
 - [.agents/rules/project-context.md](.agents/rules/project-context.md)
+
+---
+
+- [Me pague um Café? @rafaelberrocalj](https://buymeacoffee.com/rafaelberrocalj)
